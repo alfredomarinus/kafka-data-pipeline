@@ -18,6 +18,7 @@ services:
       AIRFLOW__CORE__CELERY_RESULT_BACKEND: redis://redis:6379/0
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
     volumes:
       - ./logs:/opt/airflow/logs
       - ./scripts:/opt/airflow/scripts
@@ -48,6 +49,7 @@ services:
       AIRFLOW__CORE__CELERY_RESULT_BACKEND: redis://redis:6379/0
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
     volumes:
       - ./logs:/opt/airflow/logs
       - ./airflow/dags:/opt/airflow/dags
@@ -75,6 +77,7 @@ services:
       AIRFLOW__CORE__CELERY_RESULT_BACKEND: redis://redis:6379/0
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
     volumes:
       - ./logs:/opt/airflow/logs
       - ./airflow/dags:/opt/airflow/dags
