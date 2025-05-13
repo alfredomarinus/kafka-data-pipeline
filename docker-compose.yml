@@ -6,9 +6,12 @@ services:
     container_name: airflow-webserver
     restart: always
     depends_on:
-      - postgres
-      - redis
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -38,8 +41,10 @@ services:
     build: ./airflow
     container_name: airflow-scheduler
     depends_on:
-      - airflow-webserver
-      - redis
+      airflow-webserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -66,8 +71,10 @@ services:
     build: ./airflow
     container_name: airflow-worker
     depends_on:
-      - airflow-webserver
-      - redis
+      airflow-webserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -117,7 +124,8 @@ services:
     image: bitnami/spark:3.5.0
     container_name: spark-worker
     depends_on:
-      - spark-master
+      spark-master:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -149,7 +157,8 @@ services:
       - SPARK_MASTER=spark://spark-master:7077
       - JUPYTER_ENABLE_LAB=yes
     depends_on:
-      - spark-master
+      spark-master:
+        condition: service_healthy
     networks:
       - data-stack
 
@@ -157,7 +166,8 @@ services:
     image: confluentinc/cp-kafka:latest
     container_name: kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
       - "29092:29092"
@@ -261,7 +271,8 @@ services:
     image: mher/flower:latest
     container_name: flower
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     ports:
       - "5555:5555"
     env_file:
@@ -299,7 +310,8 @@ services:
     ports:
       - "8088:8088"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
       - ./superset/superset_config.py:/app/pythonpath/superset_config.py
     networks:
@@ -327,9 +339,11 @@ services:
   hive-metastore:
     image: apache/hive:4.0.0
     container_name: hive-metastore
-    command: >
-      bash -c "schematool -initSchema -dbType postgres &&
-               hive --service metastore"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+    - "9083:9083"
     environment:
       - SERVICE_NAME=metastore
       - HIVE_METASTORE_USER=hive
@@ -337,10 +351,16 @@ services:
       - HIVE_METASTORE_DB=metastore
       - HIVE_METASTORE_DB_TYPE=postgres
       - HIVE_METASTORE_DB_HOST=postgres
-    depends_on:
-      - postgres
     volumes:
       - hive-metastore-data:/opt/hive/data
+    command: >
+      bash -c "schematool -initSchema -dbType postgres &&
+               hive --service metastore"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/9083' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     networks:
       - data-stack
 
