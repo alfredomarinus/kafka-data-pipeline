@@ -205,10 +205,10 @@ services:
     environment:
       - KAFKA_CLUSTERS_0_NAME=local
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "localhost:8085"]
-    #   interval: 10s
-    #   retries: 5
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8085"]
+      interval: 10s
+      retries: 5
     networks:
       - data-stack
   
