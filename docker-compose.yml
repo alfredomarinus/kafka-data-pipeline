@@ -1,10 +1,12 @@
-version: "3.8"
+version: "3.9"
 
 services:
   airflow-webserver:
-    build: ./airflow
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
     container_name: airflow-webserver
-    restart: always
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
@@ -14,6 +16,8 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    ports:
+      - "8080:8080"
     environment:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
@@ -24,22 +28,25 @@ services:
       PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
     volumes:
       - ./logs:/opt/airflow/logs
-      - ./scripts:/opt/airflow/scripts
-      - ./airflow/dags:/opt/airflow/dags
-      - ./plugins:/opt/airflow/plugins
-    ports:
-      - "8080:8080"
+      - ./scripts:/opt/airflow/scripts:ro
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./plugins:/opt/airflow/plugins:ro
     command: bash /opt/airflow/scripts/entrypoint.sh
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health"]
-      interval: 10s
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 60s
     networks:
       - data-stack
 
   airflow-scheduler:
-    build: ./airflow
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
     container_name: airflow-scheduler
+    restart: unless-stopped
     depends_on:
       airflow-webserver:
         condition: service_healthy
@@ -57,19 +64,24 @@ services:
       PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
     volumes:
       - ./logs:/opt/airflow/logs
-      - ./airflow/dags:/opt/airflow/dags
-      - ./plugins:/opt/airflow/plugins
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./plugins:/opt/airflow/plugins:ro
     command: airflow scheduler
     healthcheck:
       test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname $(hostname)"]
-      interval: 10s
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 60s
     networks:
       - data-stack
   
   airflow-worker:
-    build: ./airflow
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
     container_name: airflow-worker
+    restart: unless-stopped
     depends_on:
       airflow-webserver:
         condition: service_healthy
@@ -87,84 +99,100 @@ services:
       PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
     volumes:
       - ./logs:/opt/airflow/logs
-      - ./airflow/dags:/opt/airflow/dags
-      - ./plugins:/opt/airflow/plugins
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./plugins:/opt/airflow/plugins:ro
     command: celery worker
     healthcheck:
       test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname $(hostname)"]
-      interval: 10s
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 60s
     networks:
       - data-stack
 
   spark-master:
     image: bitnami/spark:3.5.0
     container_name: spark-master
+    restart: unless-stopped
     env_file:
       - .env
+    ports:
+      - "7077:7077"
+      - "8081:8080"
     environment:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
-    ports:
-      - "7077:7077"
-      - "8081:8080"
     volumes:
       - ./spark/logs:/opt/bitnami/spark/logs
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f org.apache.spark.deploy.master.Master || exit 1"]
-      interval: 15s
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 30s
     networks:
       - data-stack
 
   spark-worker:
     image: bitnami/spark:3.5.0
     container_name: spark-worker
+    restart: unless-stopped
     depends_on:
       spark-master:
         condition: service_healthy
     env_file:
       - .env
+    ports:
+      - "8082:8081"
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=4G
       - SPARK_WORKER_CORES=4
-    ports:
-      - "8082:8081"
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f org.apache.spark.deploy.worker.Worker || exit 1"]
-      interval: 15s
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 30s
     networks:
       - data-stack
 
   pyspark-notebook:
     image: jupyter/pyspark-notebook
     container_name: pyspark-notebook
+    restart: unless-stopped
+    depends_on:
+      spark-master:
+        condition: service_healthy
     ports:
       - "4040:4040"
       - "8888:8888"
-    volumes:
-      - ./notebooks:/home/jovyan/work
     environment:
       - PYSPARK_PYTHON=python3
       - PYSPARK_DRIVER_PYTHON=jupyter
       - PYSPARK_DRIVER_PYTHON_OPTS=notebook
       - SPARK_MASTER=spark://spark-master:7077
       - JUPYTER_ENABLE_LAB=yes
-    depends_on:
-      spark-master:
-        condition: service_healthy
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8888"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     networks:
       - data-stack
 
   kafka:
     image: confluentinc/cp-kafka:latest
     container_name: kafka
+    restart: unless-stopped
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -179,10 +207,14 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     healthcheck:
       test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
-      interval: 10s
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 60s
     networks:
       - data-stack
     
@@ -200,62 +232,76 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
+    restart: unless-stopped
     ports:
       - "8085:8080"
     environment:
       - KAFKA_CLUSTERS_0_NAME=local
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8085"]
-      interval: 10s
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 30s
     networks:
       - data-stack
   
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
+    restart: unless-stopped
     ports:
       - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/data
+      - zookeeper-datalog:/datalog
     healthcheck:
       test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181"]
-      interval: 10s
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 30s
     networks:
       - data-stack
   
   postgres:
     image: postgres:14
     container_name: postgres
+    restart: unless-stopped
     env_file:
       - .env
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready", "-U", "$POSTGRES_USER"]
       interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - data-stack
   
   minio:
     image: minio/minio
     container_name: minio
+    restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
       - minio-data:/data
-    env_file:
-      - .env
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -263,7 +309,9 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/ready"]
       interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - data-stack
   
@@ -273,84 +321,108 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    ports:
-      - "5555:5555"
     env_file:
       - .env
+    ports:
+      - "5555:5555"
     environment:
-      - FLOWER_BASIC_AUTH=${FLOWER_USERNAME}:${FLOWER_PASSWORD}
-      - FLOWER_PORT=5555
       - CELERY_BROKER_URL=redis://redis:6379/0
-      - FLOWER_BROKER_URL=redis://redis:6379/0
+      - FLOWER_PORT=5555
+      - FLOWER_BASIC_AUTH=${FLOWER_USERNAME}:${FLOWER_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/5555' || exit 1"]
       interval: 30s
-      timeout: 5s
-      retries: 3
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     networks:
       - data-stack
 
   redis:
     image: redis:6
     container_name: redis
+    restart: unless-stopped
     volumes:
       - redis-data:/data
+    command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - data-stack
 
   superset:
     image: apache/superset
     container_name: superset
-    environment:
-      SUPERSET_ENV: dev
-    ports:
-      - "8088:8088"
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "8088:8088"
+    environment:
+      - SUPERSET_ENV=dev
     volumes:
       - ./superset/superset_config.py:/app/pythonpath/superset_config.py
+      - superset-home:/app/superset_home
+    command: ["gunicorn", "--bind", "0.0.0.0:8088", "superset:app"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - data-stack
   
   trino:
     image: trinodb/trino:latest
     container_name: trino
+    restart: unless-stopped
     depends_on:
       minio:
+        condition: service_healthy
+      hive-metastore:
         condition: service_healthy
     ports:
       - "8090:8080"
     environment:
       - JAVA_TOOL_OPTIONS=-Xmx1G
     volumes:
-      - ./trino/etc:/etc/trino
+      - ./trino/etc:/etc/trino:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/v1/info"]
-      interval: 10s
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 60s
     networks:
       - data-stack
 
   hive-metastore:
     image: apache/hive:4.0.0
     container_name: hive-metastore
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
     ports:
     - "9083:9083"
     environment:
       - SERVICE_NAME=metastore
-      - HIVE_METASTORE_USER=hive
-      - HIVE_METASTORE_PASSWORD=hivepass
-      - HIVE_METASTORE_DB=metastore
       - HIVE_METASTORE_DB_TYPE=postgres
       - HIVE_METASTORE_DB_HOST=postgres
+      - HIVE_METASTORE_DB_PORT=5432
+      - HIVE_METASTORE_DB=metastore
+      - HIVE_METASTORE_USER=${HIVE_METASTORE_USER:-hive}
+      - HIVE_METASTORE_PASSWORD=${HIVE_METASTORE_PASSWORD:-hivepass}
     volumes:
       - hive-metastore-data:/opt/hive/data
     command: >
@@ -359,8 +431,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/9083' || exit 1"]
       interval: 30s
-      timeout: 5s
-      retries: 3
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - data-stack
 
@@ -369,7 +442,11 @@ volumes:
   redis-data:
   minio-data:
   hive-metastore-data:
+  zookeeper-data:
+  zookeeper-datalog:
+  superset-home:
 
 networks:
   data-stack:
     driver: bridge
+    name: data-stack
