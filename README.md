@@ -8,7 +8,7 @@ A production-like streaming data pipeline with:
 - Airflow (CeleryExecutor) for orchestration
 - Superset for dashboards
 
-## 🔧 Stack
+## Stack
 
 - Kafka + Zookeeper
 - Spark Structured Streaming
@@ -16,7 +16,7 @@ A production-like streaming data pipeline with:
 - Apache Airflow + CeleryExecutor + Redis + Flower
 - Apache Superset
 
-## 🚀 How to Run
+## How to Run
 
 ```bash
 docker-compose build --no-cache
