@@ -50,6 +50,8 @@ services:
     depends_on:
       airflow-webserver:
         condition: service_healthy
+      postgres:
+        condition: service_healthy  
       redis:
         condition: service_healthy
     env_file:
@@ -84,6 +86,8 @@ services:
     restart: unless-stopped
     depends_on:
       airflow-webserver:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -394,6 +398,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     ports:
@@ -414,6 +420,24 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    networks:
+      - data-stack
+
+  superset-init:
+    image: apache/superset:latest
+    container_name: superset-init
+    depends_on:
+      superset:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./superset/superset_config.py:/app/pythonpath/superset_config.py
+      - ./superset/superset-entrypoint.sh:/app/superset-entrypoint.sh
+    entrypoint: ["/app/superset-entrypoint.sh"] 
     networks:
       - data-stack
 
