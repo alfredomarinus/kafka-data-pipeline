@@ -14,6 +14,3 @@ superset fab create-admin \
 
 # Initialize Superset
 superset init
-
-# Start Superset using gunicorn
-exec gunicorn --bind 0.0.0.0:8088 superset:app
