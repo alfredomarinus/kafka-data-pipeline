@@ -257,6 +257,7 @@ services:
     
   kafka-init-topics:
     image: confluentinc/cp-kafka:latest
+    container_name: kafka-init-topics
     depends_on:
       kafka:
         condition: service_healthy
@@ -437,7 +438,6 @@ services:
     volumes:
       - ./superset/superset_config.py:/app/pythonpath/superset_config.py
       - ./superset/superset-entrypoint.sh:/app/superset-entrypoint.sh
-    entrypoint: ["/app/superset-entrypoint.sh"] 
     networks:
       - data-stack
 
