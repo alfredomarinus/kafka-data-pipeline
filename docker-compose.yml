@@ -368,7 +368,7 @@ services:
       - FLOWER_PORT=5555
       - FLOWER_BASIC_AUTH=${FLOWER_USERNAME}:${FLOWER_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/5555' || exit 1"]
+      test: ["CMD-SHELL", "wget --spider -q http://${FLOWER_USERNAME}:${FLOWER_PASSWORD}@127.0.0.1:5555 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -424,22 +424,22 @@ services:
     networks:
       - data-stack
 
-  superset-init:
-    image: apache/superset:latest
-    container_name: superset-init
-    depends_on:
-      superset:
-        condition: service_healthy
-    env_file:
-      - .env
-    environment:
-      - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
-      - REDIS_URL=redis://redis:6379/0
-    volumes:
-      - ./superset/superset_config.py:/app/pythonpath/superset_config.py
-      - ./superset/superset-entrypoint.sh:/app/superset-entrypoint.sh
-    networks:
-      - data-stack
+  # superset-init:
+  #   image: apache/superset:latest
+  #   container_name: superset-init
+  #   depends_on:
+  #     superset:
+  #       condition: service_healthy
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
+  #     - REDIS_URL=redis://redis:6379/0
+  #   volumes:
+  #     - ./superset/superset_config.py:/app/pythonpath/superset_config.py
+  #     - ./superset/superset-entrypoint.sh:/app/superset-entrypoint.sh
+  #   networks:
+  #     - data-stack
 
   hive-metastore:
     image: apache/hive:4.0.0
