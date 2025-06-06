@@ -15,22 +15,27 @@ x-airflow-common-volumes: &airflow-common-volumes
   - ./plugins:/opt/airflow/plugins:ro
   - ./scripts:/opt/airflow/scripts:ro
 
+x-airflow-base: &airflow-base
+  build:
+    context: ./airflow
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  env_file:
+    - .env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    minio:
+      condition: service_healthy
+  networks:
+    - data-stack
+
 services:
   airflow-webserver:
-    build:
-      context: ./airflow
-      dockerfile: Dockerfile
+    <<: *airflow-base
     container_name: airflow-webserver
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    env_file:
-      - .env
     ports:
       - "8080:8080"
     environment:
@@ -44,24 +49,10 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
-    networks:
-      - data-stack
 
   airflow-scheduler:
-    build:
-      context: ./airflow
-      dockerfile: Dockerfile
+    <<: *airflow-base
     container_name: airflow-scheduler
-    restart: unless-stopped
-    depends_on:
-      airflow-webserver:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy  
-      redis:
-        condition: service_healthy
-    env_file:
-      - .env
     environment:
       *airflow-common-env
     volumes:
@@ -73,24 +64,10 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
-    networks:
-      - data-stack
   
   airflow-worker:
-    build:
-      context: ./airflow
-      dockerfile: Dockerfile
+    <<: *airflow-base
     container_name: airflow-worker
-    restart: unless-stopped
-    depends_on:
-      airflow-webserver:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    env_file:
-      - .env
     environment:
       *airflow-common-env
     volumes:
@@ -102,22 +79,10 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
-    networks:
-      - data-stack
 
   airflow-triggerer:
-    build:
-      context: ./airflow
-      dockerfile: Dockerfile
+    <<: *airflow-base
     container_name: airflow-triggerer
-    restart: unless-stopped
-    depends_on:
-      airflow-webserver:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    env_file:
-      - .env
     environment:
       *airflow-common-env
     volumes:
@@ -129,8 +94,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
-    networks:
-      - data-stack
 
   spark-master:
     image: bitnami/spark:3.5.0
