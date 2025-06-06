@@ -13,6 +13,8 @@ x-airflow-common-volumes: &airflow-common-volumes
   - ./logs:/opt/airflow/logs
   - ./airflow/dags:/opt/airflow/dags:ro
   - ./plugins:/opt/airflow/plugins:ro
+  - ./scripts:/opt/airflow/scripts:ro
+
 services:
   airflow-webserver:
     build:
@@ -32,18 +34,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
-      AIRFLOW__CORE__CELERY_BROKER_URL: redis://redis:6379/0
-      AIRFLOW__CORE__CELERY_RESULT_BACKEND: redis://redis:6379/0
-      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
-      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
-      PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
+      *airflow-common-env
     volumes:
-      - ./logs:/opt/airflow/logs
-      - ./scripts:/opt/airflow/scripts:ro
-      - ./airflow/dags:/opt/airflow/dags:ro
-      - ./plugins:/opt/airflow/plugins:ro
+      *airflow-common-volumes
     command: bash /opt/airflow/scripts/airflow-entrypoint.sh
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health"]
@@ -70,17 +63,9 @@ services:
     env_file:
       - .env
     environment:
-      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
-      AIRFLOW__CORE__CELERY_BROKER_URL: redis://redis:6379/0
-      AIRFLOW__CORE__CELERY_RESULT_BACKEND: redis://redis:6379/0
-      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
-      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
-      PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
+      *airflow-common-env
     volumes:
-      - ./logs:/opt/airflow/logs
-      - ./airflow/dags:/opt/airflow/dags:ro
-      - ./plugins:/opt/airflow/plugins:ro
+      *airflow-common-volumes
     command: airflow scheduler
     healthcheck:
       test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname $(hostname)"]
@@ -107,17 +92,9 @@ services:
     env_file:
       - .env
     environment:
-      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
-      AIRFLOW__CORE__CELERY_BROKER_URL: redis://redis:6379/0
-      AIRFLOW__CORE__CELERY_RESULT_BACKEND: redis://redis:6379/0
-      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
-      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
-      PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
+      *airflow-common-env
     volumes:
-      - ./logs:/opt/airflow/logs
-      - ./airflow/dags:/opt/airflow/dags:ro
-      - ./plugins:/opt/airflow/plugins:ro
+      *airflow-common-volumes
     command: celery worker
     healthcheck:
       test: ["CMD-SHELL", 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}" || celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"']
@@ -142,15 +119,9 @@ services:
     env_file:
       - .env
     environment:
-      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
-      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
-      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
-      PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
+      *airflow-common-env
     volumes:
-      - ./logs:/opt/airflow/logs
-      - ./airflow/dags:/opt/airflow/dags:ro
-      - ./plugins:/opt/airflow/plugins:ro
+      *airflow-common-volumes
     command: airflow triggerer
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
