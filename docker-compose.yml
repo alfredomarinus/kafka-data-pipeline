@@ -1,5 +1,18 @@
 version: "3.9"
 
+x-airflow-common-env: &airflow-common-env
+  AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+  AIRFLOW__CORE__CELERY_BROKER_URL: redis://redis:6379/0
+  AIRFLOW__CORE__CELERY_RESULT_BACKEND: redis://redis:6379/0
+  AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+  AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+  PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
+
+x-airflow-common-volumes: &airflow-common-volumes
+  - ./logs:/opt/airflow/logs
+  - ./airflow/dags:/opt/airflow/dags:ro
+  - ./plugins:/opt/airflow/plugins:ro
 services:
   airflow-webserver:
     build:
