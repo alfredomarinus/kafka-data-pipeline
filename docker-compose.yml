@@ -384,44 +384,10 @@ services:
   #   networks:
   #     - data-stack
 
-  hive-metastore:
-    image: apache/hive:4.0.0
-    container_name: hive-metastore
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    env_file:
-      - .env
-    ports:
-    - "9083:9083"
-    environment:
-      - SERVICE_NAME=metastore
-      - HIVE_METASTORE_DB_TYPE=postgres
-      - HIVE_METASTORE_DB_HOST=postgres
-      - HIVE_METASTORE_DB_PORT=5432
-      - HIVE_METASTORE_DB=metastore
-      - HIVE_METASTORE_USER=${HIVE_METASTORE_USER:-hive}
-      - HIVE_METASTORE_PASSWORD=${HIVE_METASTORE_PASSWORD:-hivepass}
-    volumes:
-      - hive-metastore-data:/opt/hive/data
-    command: >
-      bash -c "schematool -initSchema -dbType postgres &&
-               hive --service metastore"
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/9083' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    networks:
-      - data-stack
-
 volumes:
   postgres-db-volume:
   redis-data:
   minio-data:
-  hive-metastore-data:
   zookeeper-data:
   zookeeper-datalog:
   superset-home:
