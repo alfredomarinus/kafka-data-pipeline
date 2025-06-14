@@ -353,10 +353,8 @@ services:
     environment:
     - SUPERSET_ENV=dev
     - PYTHONPATH=/app/pythonpath
-    - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
     - REDIS_URL=redis://redis:6379/0
     volumes:
-      - ./superset/superset_config.py:/app/pythonpath/superset_config.py
       - ./superset/superset-entrypoint.sh:/app/superset-entrypoint.sh
       - superset-home:/app/superset_home
     entrypoint: ["/app/superset-entrypoint.sh"]
