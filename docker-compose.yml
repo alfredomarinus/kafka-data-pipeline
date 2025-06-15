@@ -265,6 +265,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
+      - ./postgres/initdb:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready", "-U", "$POSTGRES_USER"]
       interval: 10s
@@ -355,7 +356,7 @@ services:
     - PYTHONPATH=/app/pythonpath
     - REDIS_URL=redis://redis:6379/0
     volumes:
-      - ./superset/superset-entrypoint.sh:/app/superset-entrypoint.sh
+      - ./superset:/app
       - superset-home:/app/superset_home
     entrypoint: ["/app/superset-entrypoint.sh"]
     healthcheck:
