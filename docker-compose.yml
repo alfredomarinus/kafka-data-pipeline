@@ -338,60 +338,12 @@ services:
     networks:
       - data-stack
 
-  superset:
-    image: apache/superset
-    container_name: superset
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    env_file:
-      - .env
-    ports:
-      - "8088:8088"
-    environment:
-    - SUPERSET_ENV=dev
-    - PYTHONPATH=/app/pythonpath
-    - REDIS_URL=redis://redis:6379/0
-    volumes:
-      - ./superset:/app
-      - superset-home:/app/superset_home
-    entrypoint: ["/app/superset-entrypoint.sh"]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8088/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    networks:
-      - data-stack
-
-  # superset-init:
-  #   image: apache/superset:latest
-  #   container_name: superset-init
-  #   depends_on:
-  #     superset:
-  #       condition: service_healthy
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
-  #     - REDIS_URL=redis://redis:6379/0
-  #   volumes:
-  #     - ./superset/superset_config.py:/app/pythonpath/superset_config.py
-  #     - ./superset/superset-entrypoint.sh:/app/superset-entrypoint.sh
-  #   networks:
-  #     - data-stack
-
 volumes:
   postgres-db-volume:
   redis-data:
   minio-data:
   zookeeper-data:
   zookeeper-datalog:
-  superset-home:
 
 networks:
   data-stack:
