@@ -40,7 +40,7 @@ services:
       *airflow-common-env
     volumes:
       *airflow-common-volumes
-    command: bash /opt/airflow/scripts/airflow-entrypoint.sh
+    command: bash /opt/airflow/airflow-entrypoint.sh
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health"]
       interval: 30s
