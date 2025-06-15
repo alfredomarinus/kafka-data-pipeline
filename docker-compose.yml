@@ -8,10 +8,10 @@ x-airflow-common-env: &airflow-common-env
   PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
 
 x-airflow-common-volumes: &airflow-common-volumes
-  - ./logs:/opt/airflow/logs
+  - ./airflow/logs:/opt/airflow/logs:ro
   - ./airflow/dags:/opt/airflow/dags:ro
-  - ./plugins:/opt/airflow/plugins:ro
-  - ./scripts:/opt/airflow/scripts:ro
+  - ./airflow/plugins:/opt/airflow/plugins:ro
+  - ./airflow/scripts:/opt/airflow/scripts:ro
 
 x-airflow-base: &airflow-base
   build:
@@ -40,7 +40,7 @@ services:
       *airflow-common-env
     volumes:
       *airflow-common-volumes
-    command: bash /opt/airflow/airflow-entrypoint.sh
+    command: bash /opt/airflow/scripts/airflow-entrypoint.sh
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health"]
       interval: 30s
@@ -200,17 +200,17 @@ services:
     networks:
       - data-stack
     
-  kafka-init-topics:
-    image: confluentinc/cp-kafka:latest
-    container_name: kafka-init-topics
-    depends_on:
-      kafka:
-        condition: service_healthy
-    volumes:
-      - ./kafka/init-topics.sh:/init-topics.sh
-    entrypoint: ["sh", "/init-topics.sh"]
-    networks:
-      - data-stack
+  # kafka-init-topics:
+  #   image: confluentinc/cp-kafka:latest
+  #   container_name: kafka-init-topics
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./kafka/init-topics.sh:/init-topics.sh
+  #   entrypoint: ["sh", "/init-topics.sh"]
+  #   networks:
+  #     - data-stack
   
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
