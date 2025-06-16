@@ -291,7 +291,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/ready"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9001/minio/health/ready"]
       interval: 10s
       timeout: 5s
       retries: 5
