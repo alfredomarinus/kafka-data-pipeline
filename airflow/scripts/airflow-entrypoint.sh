@@ -1,14 +1,14 @@
 #!/bin/bash
 
-echo "Waiting for PostgreSQL..."
+echo "Waiting for PostgreSQL"
 while ! pg_isready -h postgres -p 5432 -U "$POSTGRES_USER"; do
   sleep 2;
 done
 
-echo "Initializing Airflow DB..."
+echo "Initializing Airflow database"
 airflow db migrate
 
-echo "Creating Airflow user..."
+echo "Creating Airflow user"
 airflow users create \
   --username admin \
   --password admin \
@@ -17,5 +17,5 @@ airflow users create \
   --role Admin \
   --email admin@example.com || true
 
-echo "Starting webserver..."
+echo "Starting Airflow webserver"
 exec airflow webserver
