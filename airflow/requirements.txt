@@ -1,3 +1,0 @@
-apache-airflow-providers-postgres
-apache-airflow-providers-docker
-apache-airflow-providers-redis
