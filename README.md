@@ -6,23 +6,22 @@ A production-like data pipeline combining **Kafka** for event streaming with **A
 
 | Service | Description |
 |---------|-------------|
-| **kafka** | Distributed event streaming - KRaft mode (ports `9092`, `29092`) |
-| **kafka-ui** | Web-based Kafka cluster browser (port `8085`) |
-| **postgres** | PostgreSQL database for Airflow metadata & sink (port `5432`) |
-| **redis** | In-memory data store for Celery broker (port `6379`) |
-| **airflow-api-server** | Apache Airflow web UI and REST API (port `8080`) |
-| **airflow-scheduler** | DAG scheduler and task orchestrator |
-| **airflow-dag-processor** | DAG parsing and validation |
-| **airflow-worker** | Celery task executor |
-| **airflow-triggerer** | Async task trigger manager |
+| **airflow-api-server** | Web UI and REST API (port `8080`) |
+| **airflow-scheduler** | Schedules DAG runs |
+| **airflow-dag-processor** | Parses DAG files |
+| **airflow-worker** | Celery worker that executes tasks |
+| **airflow-triggerer** | Handles deferrable operators |
 | **flower** | Celery task monitoring dashboard (port `5555`) |
+| **postgres** | Metadata and sink database (port `5432`) |
+| **redis** | Celery message broker (port `6379`) |
+| **kafka** | Distributed event streaming broker (ports `9092`, `29092`) |
+| **kafka-ui** | Web-based Kafka cluster browser (port `8085`) |
 
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) ≥ 24.0
 - [Docker Compose](https://docs.docker.com/compose/install/) ≥ 2.20
-- 8GB minimum RAM (16GB recommended for Airflow)
-- Ports available: 8080, 8085, 5432, 5555, 6379, 9092, 29092
+- At least **8 GB RAM** allocated to Docker
 
 ## Quick Start
 
