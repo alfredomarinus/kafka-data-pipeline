@@ -28,7 +28,6 @@ x-airflow-common:
       condition: service_healthy
 
 services:
-  # ==================== Kafka Services ====================
   kafka:
     image: confluentinc/cp-kafka:latest
     container_name: kafka
@@ -70,16 +69,15 @@ services:
       - KAFKA_CLUSTERS_0_NAME=local-kraft
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/ || exit 1"]
       interval: 30s
-      timeout: 10s
+      timeout: 15s
       retries: 5
-      start_period: 30s
+      start_period: 60s
     depends_on:
       kafka:
         condition: service_healthy
 
-  # ==================== Airflow Database & Cache ====================
   postgres:
     image: postgres:17.5-alpine
     container_name: postgres
@@ -115,7 +113,6 @@ services:
       start_period: 30s
     restart: always
 
-  # ==================== Airflow Services ====================
   airflow-api-server:
     <<: *airflow-common
     container_name: airflow-api-server
