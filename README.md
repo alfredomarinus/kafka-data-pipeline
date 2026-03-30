@@ -68,14 +68,15 @@ kafka-data-pipeline/
 ├── docker-compose.yml
 ├── Makefile
 ├── README.md
-├── config/
-│   └── airflow.cfg   # Airflow configuration
-├── dags/             # Airflow DAG definitions (workflows)
+├── airflow/
+│   ├── config/
+│   │   └── airflow.cfg   # Airflow configuration
+│   ├── dags/             # Airflow DAG definitions (workflows)
+│   ├── plugins/          # Custom Airflow plugins
+│   └── logs/             # Container and application logs
 ├── kafka/
 │   ├── init-topics.sh     # Kafka topic initialization script
 │   └── producer.py        # Sample Kafka producer
-├── plugins/          # Custom Airflow plugins
-└── logs/             # Container and application logs
 ```
 
 ## Service URLs
