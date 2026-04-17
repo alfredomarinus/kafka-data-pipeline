@@ -35,6 +35,8 @@ services:
     ports:
       - "9092:9092"
       - "29092:29092"
+    volumes:
+      - ./kafka:/app
     environment:
       # KRaft settings
       KAFKA_PROCESS_ROLES: 'broker,controller'
@@ -58,6 +60,23 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+
+  kafka-init:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./kafka:/app
+    entrypoint: 
+      - bash
+      - -c
+      - |
+        echo "Initializing Kafka topics..."
+        bash /app/init-topics.sh
+        echo "Kafka topics initialized successfully"
+    restart: "no"
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest

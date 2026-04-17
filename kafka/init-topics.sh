@@ -18,7 +18,7 @@ fi
 echo "Kafka is ready. Creating topic..."
 
 kafka-topics --create --if-not-exists \
-  --topic my_stream_topic \
+  --topic prototype-events \
   --bootstrap-server kafka:9092 \
   --replication-factor 1 \
   --partitions 1
