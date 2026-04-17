@@ -1,38 +1,20 @@
-"""
-Sample Kafka Producer
-
-This producer demonstrates how to send messages to a Kafka topic.
-It generates sample event data and streams it to the configured Kafka broker.
-
-Usage:
-    python producer.py
-"""
-
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
+import random
 
-
-def create_producer(bootstrap_servers='localhost:9092'):
-    """
-    Create and configure a Kafka producer.
-    
-    Args:
-        bootstrap_servers (str): Comma-separated list of Kafka brokers
-        
-    Returns:
-        KafkaProducer: Configured producer instance
-    """
+def create_producer(bootstrap_servers='kafka:9092'):
     return KafkaProducer(
         bootstrap_servers=bootstrap_servers,
         value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-        acks='all',
+        acks=1,  # Only wait for leader acknowledgment
         retries=3,
-        max_in_flight_requests_per_connection=1
+        max_in_flight_requests_per_connection=5,  # Pipeline multiple requests
+        batch_size=16384,  # Batch messages (16KB)
+        linger_ms=10,  # Wait 10ms to batch messages
     )
-
 
 def delivery_report(record_metadata, error):
     """
@@ -50,10 +32,9 @@ def delivery_report(record_metadata, error):
             f"[partition: {record_metadata.partition()}, offset: {record_metadata.offset()}]"
         )
 
-
 def generate_sample_event(event_id):
     """
-    Generate a sample event for streaming.
+    Generate more realistic sample events with better randomization.
     
     Args:
         event_id (int): Unique event identifier
@@ -63,22 +44,21 @@ def generate_sample_event(event_id):
     """
     return {
         "event_id": event_id,
-        "timestamp": datetime.utcnow().isoformat(),
-        "user_id": f"user_{event_id % 100}",
-        "action": ["login", "logout", "purchase", "view", "click"][event_id % 5],
-        "amount": round((event_id % 1000) * 0.5, 2),
-        "region": ["US", "EU", "APAC", "LATAM"][event_id % 4]
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "user_id": f"user_{random.randint(1, 500)}",  # 500 unique users instead of 100
+        "action": random.choice(["login", "logout", "purchase", "view", "click"]),
+        "amount": round(random.uniform(10, 500), 2),  # Random amounts 10-500
+        "region": random.choice(["US", "EU", "APAC", "LATAM"])
     }
 
-
-def produce_events(topic='events', num_events=10, interval=1):
+def produce_events(topic='events', num_events=10, interval=0):
     """
     Produce sample events to a Kafka topic.
     
     Args:
         topic (str): Target Kafka topic
         num_events (int): Number of events to produce
-        interval (float): Interval between events in seconds
+        interval (float): Interval between events in seconds (default 0)
     """
     producer = create_producer()
     
@@ -86,30 +66,27 @@ def produce_events(topic='events', num_events=10, interval=1):
         for i in range(num_events):
             event = generate_sample_event(i)
             
-            # Send message
+            # Send with proper callbacks
             future = producer.send(topic, event)
+            future.add_callback(delivery_report)
+            future.add_errback(lambda err: delivery_report(None, err))
             
-            # Get result
-            try:
-                record_metadata = future.get(timeout=10)
-                print(f"Event {i}: Sent to {topic}")
-            except KafkaError as err:
-                print(f"Event {i}: Failed to send - {err}")
+            print(f"Event {i}: Sent to {topic}")
             
-            time.sleep(interval)
+            if interval > 0:
+                time.sleep(interval)
     
     except KeyboardInterrupt:
         print("\nProducer interrupted")
     finally:
-        producer.flush()
+        producer.flush(timeout=30)
         producer.close()
         print("Producer closed")
 
-
 if __name__ == '__main__':
-    # Example: Produce 100 events with 1 second interval
+    # Example: Produce 500 events with 0 second interval (as fast as possible)
     produce_events(
-        topic='events',
-        num_events=100,
-        interval=1
+        topic='prototype-events',
+        num_events=500,
+        interval=0  # Remove the 1-second delay!
     )
