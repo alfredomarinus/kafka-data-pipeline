@@ -1,6 +1,6 @@
 x-airflow-common:
   &airflow-common
-  image: apache/airflow:3.0.2
+  image: apache/airflow:3.2.0
   environment:
     &airflow-common-env
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}
